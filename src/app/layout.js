@@ -1,3 +1,4 @@
+import Link from "next/link";
 import "./globals.css";
 
 export const metadata = {
@@ -21,13 +22,22 @@ function Header() {
   return (
     <header className="border-b border-gray-200">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <a href="/" className="text-xl font-bold tracking-tight">
+        <Link href="/" className="text-xl font-bold tracking-tight">
           IRONWEAR
-        </a>
+        </Link>
+
         <nav className="flex gap-6 text-sm font-medium">
-          <a href="/" className="hover:text-gray-500">Home</a>
-          <a href="/products" className="hover:text-gray-500">Shop</a>
-          <a href="/cart" className="hover:text-gray-500">Cart</a>
+          <Link href="/" className="hover:text-gray-500">
+            Home
+          </Link>
+
+          <Link href="/products" className="hover:text-gray-500">
+            Shop
+          </Link>
+
+          <Link href="/cart" className="hover:text-gray-500">
+            Cart
+          </Link>
         </nav>
       </div>
     </header>
@@ -38,7 +48,8 @@ function Footer() {
   return (
     <footer className="border-t border-gray-200">
       <div className="mx-auto max-w-6xl px-6 py-8 text-sm text-gray-500">
-        © {new Date().getFullYear()} Ironwear. Portfolio project — not a real store.
+        © {new Date().getFullYear()} Ironwear. Portfolio project — not a real
+        store.
       </div>
     </footer>
   );
