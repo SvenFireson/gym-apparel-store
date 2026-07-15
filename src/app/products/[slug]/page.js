@@ -74,7 +74,7 @@ export default async function ProductPage({ params }) {
       </Link>
 
       <div className="mt-8 grid gap-10 lg:grid-cols-2">
-        <div className="relative aspect-square overflow-hidden rounded-lg border border-gray-800 bg-gray-900">
+        <div className="relative aspect-[4/3] overflow-hidden rounded-lg border border-gray-800 bg-black">
   {product.images[0] ? (
     <Image
       src={product.images[0].url}
@@ -82,7 +82,7 @@ export default async function ProductPage({ params }) {
       fill
       priority
       sizes="(min-width: 1024px) 50vw, 100vw"
-      className="object-cover"
+      className="object-contain"
     />
   ) : (
     <div className="flex h-full items-center justify-center text-gray-500">

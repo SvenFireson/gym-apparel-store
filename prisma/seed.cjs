@@ -28,7 +28,7 @@ const products = [
     images: {
       create: [
         {
-          url: "/products/core-performance-tee-black.jpg",
+          url: "/products/core-performance-tee-black.png",
           altText: "Black Core Performance Tee",
           position: 0,
         },
@@ -53,8 +53,10 @@ const products = [
     images: {
       create: [
         {
-          url: "/products/oversized-pump-cover-stone.jpg",
+          url: "/products/oversized-pump-cover-stone.png",
           altText: "Stone Oversized Pump Cover",
+
+
           position: 0,
         },
       ],
@@ -78,7 +80,7 @@ const products = [
     images: {
       create: [
         {
-          url: "/products/essential-training-shorts-black.jpg",
+          url: "/products/essential-training-shorts-black.png",
           altText: "Black Essential Training Shorts",
           position: 0,
         },
@@ -103,7 +105,7 @@ const products = [
     images: {
       create: [
         {
-          url: "/products/heavyweight-hoodie-charcoal.jpg",
+          url: "/products/heavyweight-hoodie-charcoal.png",
           altText: "Charcoal Heavyweight Rest Day Hoodie",
           position: 0,
         },
@@ -128,7 +130,7 @@ const products = [
     images: {
       create: [
         {
-          url: "/products/ironwear-training-cap-black.jpg",
+          url: "/products/ironwear-training-cap-black.png",
           altText: "Black Ironwear Training Cap",
           position: 0,
         },
@@ -151,7 +153,12 @@ async function main() {
   for (const product of products) {
     await prisma.product.upsert({
       where: { slug: product.slug },
-      update: {},
+      update: {
+        images: {
+        deleteMany: {},
+        create: product.images.create,
+      },
+      },
       create: product,
     });
   }

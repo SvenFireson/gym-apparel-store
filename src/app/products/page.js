@@ -29,7 +29,7 @@ export default async function ProductsPage() {
   });
 
   return (
-    <section className="mx-auto max-w-6xl px-6 py-12">
+    <section className="mx-auto max-w-7xl px-6 py-12">
       <div>
         <h1 className="text-4xl font-bold">Shop</h1>
 
@@ -43,7 +43,7 @@ export default async function ProductsPage() {
           No products are currently available.
         </div>
       ) : (
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {products.map((product) => {
             const totalStock = product.variants.reduce(
               (total, variant) => total + variant.stock,
@@ -56,15 +56,15 @@ export default async function ProductsPage() {
                     href={`/products/${product.slug}`}
                     className="group overflow-hidden rounded-lg border border-gray-800 bg-gray-950 transition hover:-translate-y-1 hover:border-gray-600"
               >
-                <div className="relative aspect-square overflow-hidden bg-gray-900">
-                  {product.images[0] ? (
-                  <Image
-                    src={product.images[0].url}
-                    alt={product.images[0].altText}
-                    fill
-                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                    className="object-cover transition duration-300 group-hover:scale-105"
-                />
+                <div className="relative aspect-[16/9] overflow-hidden bg-black">
+  {product.images[0] ? (
+    <Image
+      src={product.images[0].url}
+      alt={product.images[0].altText}
+      fill
+      sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"
+      className="object-contain transition duration-300 group-hover:scale-[1.02]"
+    />
   ) : (
     <div className="flex h-full items-center justify-center text-sm text-gray-500">
       Product image coming soon
