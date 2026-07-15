@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
 export const metadata = {
@@ -49,9 +50,10 @@ export default async function ProductsPage() {
             );
 
             return (
-              <article
-                key={product.id}
-                className="overflow-hidden rounded-lg border border-gray-800 bg-gray-950"
+             <Link
+                   key={product.id}
+                    href={`/products/${product.slug}`}
+                    className="group overflow-hidden rounded-lg border border-gray-800 bg-gray-950 transition hover:-translate-y-1 hover:border-gray-600"
               >
                 <div className="flex aspect-square items-center justify-center bg-gray-900 text-sm text-gray-500">
                   {product.images[0]?.altText ?? "Product image coming soon"}
@@ -78,7 +80,7 @@ export default async function ProductsPage() {
                     </p>
                   </div>
                 </div>
-              </article>
+              </Link    >
             );
           })}
         </div>
