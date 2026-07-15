@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
@@ -55,9 +56,21 @@ export default async function ProductsPage() {
                     href={`/products/${product.slug}`}
                     className="group overflow-hidden rounded-lg border border-gray-800 bg-gray-950 transition hover:-translate-y-1 hover:border-gray-600"
               >
-                <div className="flex aspect-square items-center justify-center bg-gray-900 text-sm text-gray-500">
-                  {product.images[0]?.altText ?? "Product image coming soon"}
-                </div>
+                <div className="relative aspect-square overflow-hidden bg-gray-900">
+                  {product.images[0] ? (
+                  <Image
+                    src={product.images[0].url}
+                    alt={product.images[0].altText}
+                    fill
+                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                    className="object-cover transition duration-300 group-hover:scale-105"
+                />
+  ) : (
+    <div className="flex h-full items-center justify-center text-sm text-gray-500">
+      Product image coming soon
+    </div>
+  )}
+</div>
 
                 <div className="p-5">
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import Image from "next/image";
 
 export const dynamic = "force-dynamic";
 
@@ -73,9 +74,22 @@ export default async function ProductPage({ params }) {
       </Link>
 
       <div className="mt-8 grid gap-10 lg:grid-cols-2">
-        <div className="flex aspect-square items-center justify-center rounded-lg border border-gray-800 bg-gray-900 text-gray-500">
-          {product.images[0]?.altText ?? "Product image coming soon"}
-        </div>
+        <div className="relative aspect-square overflow-hidden rounded-lg border border-gray-800 bg-gray-900">
+  {product.images[0] ? (
+    <Image
+      src={product.images[0].url}
+      alt={product.images[0].altText}
+      fill
+      priority
+      sizes="(min-width: 1024px) 50vw, 100vw"
+      className="object-cover"
+    />
+  ) : (
+    <div className="flex h-full items-center justify-center text-gray-500">
+      Product image coming soon
+    </div>
+  )}
+</div>
 
         <div>
           <p className="text-sm font-semibold uppercase tracking-wider text-gray-500">
