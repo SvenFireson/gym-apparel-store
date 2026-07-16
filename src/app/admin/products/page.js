@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-
+import DeleteProductButton from "./DeleteProductButton";
 import { auth } from "@/auth/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -100,9 +100,10 @@ export default async function AdminProductsPage() {
                     Edit
                   </Link>
 
-                  <button className="text-red-400">
-                    Delete
-                  </button>
+                  <DeleteProductButton
+                    productId={product.id}
+                    productName={product.name}
+                  />
                 </td>
               </tr>
             ))}
