@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../../lib/prisma";
 
 function createOrderNumber() {
   const timestamp = Date.now().toString();
@@ -133,33 +133,63 @@ export async function POST(request) {
     const shippingInCents = 0;
     const totalInCents = subtotalInCents + shippingInCents;
 
-    const order = await prisma.order.create({
-      data: {
-        orderNumber: createOrderNumber(),
-        email,
-        firstName,
-        lastName,
-        phone: body.phone?.trim() || null,
-        addressLine1,
-        addressLine2: body.addressLine2?.trim() || null,
-        city,
-        state,
-        postalCode,
-        country,
-        subtotalInCents,
-        shippingInCents,
-        totalInCents,
-        items: {
-          create: orderItems,
+    const order = await prisma.$transaction(async (tx) => {
+  for (const item of requestedItems) {
+    const variant = variantMap.get(item.variantId);
+
+    if (!variant) {
+      throw new Error(`Variant ${item.variantId} was not found.`);
+    }
+
+    const updatedVariant = await tx.productVariant.updateMany({
+      where: {
+        id: variant.id,
+        stock: {
+          gte: item.quantity,
         },
       },
-      select: {
-        id: true,
-        orderNumber: true,
-        status: true,
-        totalInCents: true,
+      data: {
+        stock: {
+          decrement: item.quantity,
+        },
       },
     });
+
+    if (updatedVariant.count !== 1) {
+      throw new Error(
+        `${variant.product.name} no longer has enough stock available.`,
+      );
+    }
+  }
+
+  return tx.order.create({
+    data: {
+      orderNumber: createOrderNumber(),
+      email,
+      firstName,
+      lastName,
+      phone: body.phone?.trim() || null,
+      addressLine1,
+      addressLine2: body.addressLine2?.trim() || null,
+      city,
+      state,
+      postalCode,
+      country,
+      subtotalInCents,
+      shippingInCents,
+      totalInCents,
+      items: {
+        create: orderItems,
+      },
+    },
+    select: {
+      id: true,
+      orderNumber: true,
+      status: true,
+      totalInCents: true,
+    },
+  });
+});
 
     return Response.json(
       {

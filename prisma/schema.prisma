@@ -67,9 +67,10 @@ enum OrderStatus {
 }
 
 model Order {
-  id          String      @id @default(cuid())
-  orderNumber String      @unique
-  status      OrderStatus @default(PENDING)
+  id                      String      @id @default(cuid())
+  orderNumber             String      @unique
+  status                  OrderStatus @default(PENDING)
+  stripeCheckoutSessionId String?     @unique
 
   email     String
   firstName String
