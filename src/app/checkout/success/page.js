@@ -48,16 +48,7 @@ export default async function CheckoutSuccessPage({ searchParams }) {
 
   const paymentSucceeded = session.payment_status === "paid";
 
-  if (paymentSucceeded && order.status === "PENDING") {
-    await prisma.order.update({
-      where: {
-        id: order.id,
-      },
-      data: {
-        status: "PAID",
-      },
-    });
-  }
+  
 
   return (
     <section className="mx-auto max-w-3xl px-6 py-16 text-center">
@@ -84,7 +75,7 @@ export default async function CheckoutSuccessPage({ searchParams }) {
         <div className="mt-4 flex justify-between gap-4">
           <span className="text-gray-400">Status</span>
           <span className="font-semibold">
-            {paymentSucceeded ? "PAID" : order.status}
+            {order.status}
           </span>
         </div>
 
