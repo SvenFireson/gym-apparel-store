@@ -1,10 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import { useSyncExternalStore } from "react";
 import { useCart } from "@/context/CartContext";
+
+const emptySubscribe = () => () => {};
 
 export default function HeaderNav() {
   const { itemCount } = useCart();
+
+  const isHydrated = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
 
   return (
     <nav className="flex gap-6 text-sm font-medium">
@@ -17,7 +26,7 @@ export default function HeaderNav() {
       </Link>
 
       <Link href="/cart" className="hover:text-gray-500">
-        Cart{itemCount > 0 ? ` (${itemCount})` : ""}
+        Cart{isHydrated && itemCount > 0 ? ` (${itemCount})` : ""}
       </Link>
     </nav>
   );

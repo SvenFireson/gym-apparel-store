@@ -205,12 +205,12 @@ export default function CartPage() {
             <span>${(subtotalInCents / 100).toFixed(2)}</span>
           </div>
 
-          <button
-            type="button"
-            className="mt-6 w-full rounded-md bg-white px-6 py-3 font-semibold text-black transition hover:bg-gray-200"
+          <Link
+            href="/checkout"
+             className="mt-6 block w-full rounded-md bg-white px-6 py-3 text-center font-semibold text-black transition hover:bg-gray-200"
           >
             Proceed to checkout
-          </button>
+          </Link>
 
           <button
             type="button"
