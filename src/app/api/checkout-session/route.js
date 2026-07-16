@@ -54,6 +54,7 @@ export async function POST(request) {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       customer_email: order.email,
+      expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
 
       line_items: order.items.map((item) => ({
         quantity: item.quantity,
