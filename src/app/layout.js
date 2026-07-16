@@ -1,5 +1,6 @@
 import Link from "next/link";
 import "./globals.css";
+import { CartProvider } from "@/context/CartContext";
 
 export const metadata = {
   title: "Gym Apparel Store",
@@ -10,9 +11,11 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="flex min-h-screen flex-col bg-white text-gray-900">
+        <CartProvider>
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />
+        </CartProvider>
       </body>
     </html>
   );
