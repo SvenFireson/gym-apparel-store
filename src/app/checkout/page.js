@@ -52,8 +52,29 @@ async function handleSubmit(event) {
       throw new Error(data.error || "Unable to create your order.");
     }
 
-    setCompletedOrder(data.order);
-    clearCart();
+    const stripeResponse = await fetch("/api/checkout-session", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    orderId: data.order.id,
+  }),
+});
+
+const stripeData = await stripeResponse.json();
+
+if (!stripeResponse.ok) {
+  throw new Error(
+    stripeData.error || "Unable to start Stripe Checkout.",
+  );
+}
+
+if (!stripeData.url) {
+  throw new Error("Stripe did not return a payment URL.");
+}
+
+window.location.href = stripeData.url;
   } catch (error) {
     console.error("Checkout failed:", error);
 
@@ -321,12 +342,12 @@ if (completedOrder) {
             disabled={isSubmitting}
             className="w-full rounded-md bg-white px-6 py-3 font-semibold text-black transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60"
         >
-            {isSubmitting ? "Creating order..." : "Place test order"}
+            {isSubmitting ? "Redirecting to payment..." : "Continue to payment"}
         </button>
 
           <p className="text-center text-sm text-gray-500">
-            Payment is not collected yet. Stripe will be added next.
-        </p>
+             Payment is securely processed by Stripe.
+          </p>
         </form>
 
         <aside className="h-fit rounded-2xl border border-gray-800 bg-gray-950 p-6 lg:sticky lg:top-6">

@@ -1,4 +1,4 @@
-import { prisma } from "../../lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 function createOrderNumber() {
   const timestamp = Date.now().toString();
@@ -12,6 +12,7 @@ export async function POST(request) {
    const body = await request.json();
 
     const email = body.email?.trim();
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const firstName = body.firstName?.trim();
     const lastName = body.lastName?.trim();
     const addressLine1 = body.addressLine1?.trim();
@@ -35,6 +36,12 @@ export async function POST(request) {
         { status: 400 },
       );
     }
+    if (!emailPattern.test(email)) {
+  return Response.json(
+    { error: "Please enter a valid email address." },
+    { status: 400 },
+  );
+}
 
     if (!Array.isArray(body.items) || body.items.length === 0) {
       return Response.json(
