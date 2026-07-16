@@ -15,19 +15,32 @@ export function CartProvider({ children }) {
   const [items, setItems] = useState([]);
   const [hasLoadedCart, setHasLoadedCart] = useState(false);
 
-  useEffect(() => {
-    try {
-      const savedCart = window.localStorage.getItem("ironwear-cart");
+ useEffect(() => {
+  let savedItems = [];
 
-      if (savedCart) {
-        setItems(JSON.parse(savedCart));
+  try {
+    const savedCart = window.localStorage.getItem("ironwear-cart");
+
+    if (savedCart) {
+      const parsedCart = JSON.parse(savedCart);
+
+      if (Array.isArray(parsedCart)) {
+        savedItems = parsedCart;
       }
-    } catch (error) {
-      console.error("Unable to load cart:", error);
-    } finally {
-      setHasLoadedCart(true);
     }
-  }, []);
+  } catch (error) {
+    console.error("Unable to load cart:", error);
+  }
+
+  const timeoutId = window.setTimeout(() => {
+    setItems(savedItems);
+    setHasLoadedCart(true);
+  }, 0);
+
+  return () => {
+    window.clearTimeout(timeoutId);
+  };
+}, []);
 
   useEffect(() => {
     if (!hasLoadedCart) {
