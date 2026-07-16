@@ -16,6 +16,12 @@ export default function HeaderNav({ user }) {
     () => false,
   );
 
+  async function handleSignOut() {
+    await signOut({
+      callbackUrl: "/",
+    });
+  }
+
   return (
     <nav className="flex items-center gap-6 text-sm font-medium">
       <Link href="/" className="transition hover:text-gray-500">
@@ -38,7 +44,7 @@ export default function HeaderNav({ user }) {
 
           <button
             type="button"
-            onClick={() => signOut({ callbackUrl: "/" })}
+            onClick={handleSignOut}
             className="transition hover:text-gray-500"
           >
             Sign out

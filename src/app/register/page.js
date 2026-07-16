@@ -38,7 +38,17 @@ export default function RegisterPage() {
         }),
       });
 
-      const data = await response.json();
+      const responseText = await response.text();
+
+let data = {};
+
+if (responseText) {
+  try {
+    data = JSON.parse(responseText);
+  } catch {
+    throw new Error("The server returned an invalid response.");
+  }
+}
 
       if (!response.ok) {
         throw new Error(data.error || "Unable to create your account.");

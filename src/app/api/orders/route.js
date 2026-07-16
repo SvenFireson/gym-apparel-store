@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth/auth";
 
 function createOrderNumber() {
   const timestamp = Date.now().toString();
@@ -11,7 +12,7 @@ export async function POST(request) {
   try {
    const body = await request.json();
 
-    const email = body.email?.trim();
+    const email = body.email?.trim().toLowerCase();
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const firstName = body.firstName?.trim();
     const lastName = body.lastName?.trim();
@@ -20,6 +21,24 @@ export async function POST(request) {
     const state = body.state?.trim();
     const postalCode = body.postalCode?.trim();
     const country = body.country?.trim();
+        const session = await auth();
+
+console.log("ORDER SESSION:", session);
+
+let userId = null;
+
+    if (session?.user?.email) {
+      const user = await prisma.user.findUnique({
+        where: {
+          email: session.user.email.toLowerCase(),
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      userId = user?.id ?? null;
+    }
 
     if (
       !email ||
@@ -168,10 +187,11 @@ export async function POST(request) {
       );
     }
   }
-
+console.log("ORDER USER ID:", userId);
   return tx.order.create({
     data: {
       orderNumber: createOrderNumber(),
+      userId,
       email,
       firstName,
       lastName,

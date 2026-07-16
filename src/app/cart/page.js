@@ -1,17 +1,27 @@
 "use client";
 
+
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 
 export default function CartPage() {
-  const {
-    items,
-    subtotalInCents,
-    updateQuantity,
-    removeItem,
-    clearCart,
-  } = useCart();
+ const {
+  items,
+  subtotalInCents,
+  updateQuantity,
+  removeItem,
+  clearCart,
+  hasLoadedCart,
+} = useCart();
+
+if (!hasLoadedCart) {
+  return (
+    <section className="mx-auto max-w-7xl px-6 py-12">
+      <p className="text-gray-400">Loading cart...</p>
+    </section>
+  );
+}
 
   if (items.length === 0) {
     return (
@@ -64,6 +74,7 @@ export default function CartPage() {
           {items.map((item) => {
             const lineTotal = item.priceInCents * item.quantity;
             const isAtMaximum = item.quantity >= item.stock;
+
 
             return (
               <article

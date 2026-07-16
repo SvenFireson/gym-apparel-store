@@ -1,6 +1,6 @@
 import Link from "next/link";
 import "./globals.css";
-
+import HeaderNav from "@/components/HeaderNav";
 import { auth } from "@/auth/auth";
 import { CartProvider } from "@/context/CartContext";
 
@@ -34,35 +34,7 @@ function Header({ user }) {
           IRONWEAR
         </Link>
 
-        <nav className="flex items-center gap-6 text-sm font-medium">
-  <Link href="/" className="transition hover:text-gray-500">
-    Home
-  </Link>
-
-  <Link href="/products" className="transition hover:text-gray-500">
-    Shop
-  </Link>
-
-  <Link href="/cart" className="transition hover:text-gray-500">
-    Cart
-  </Link>
-
-  {user ? (
-  <>
-    <Link href="/account" className="transition hover:text-gray-500">
-      Account
-    </Link>
-
-    <Link href="/api/auth/signout" className="transition hover:text-gray-500">
-      Sign out
-    </Link>
-  </>
-) : (
-  <Link href="/login" className="transition hover:text-gray-500">
-    Sign in
-  </Link>
-)}
-</nav>
+        <HeaderNav user={user} />
       </div>
     </header>
   );

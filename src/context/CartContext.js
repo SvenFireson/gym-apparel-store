@@ -2,6 +2,7 @@
 
 import {
   createContext,
+   useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -11,24 +12,33 @@ import {
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
-  const [items, setItems] = useState(() => {
-  if (typeof window === "undefined") {
-    return [];
-  }
+  const [items, setItems] = useState([]);
+  const [hasLoadedCart, setHasLoadedCart] = useState(false);
 
-  try {
-    const savedCart = window.localStorage.getItem("ironwear-cart");
+  useEffect(() => {
+    try {
+      const savedCart = window.localStorage.getItem("ironwear-cart");
 
-    return savedCart ? JSON.parse(savedCart) : [];
-  } catch (error) {
-    console.error("Unable to load cart:", error);
-    return [];
-  }
-});
+      if (savedCart) {
+        setItems(JSON.parse(savedCart));
+      }
+    } catch (error) {
+      console.error("Unable to load cart:", error);
+    } finally {
+      setHasLoadedCart(true);
+    }
+  }, []);
 
-useEffect(() => {
-  window.localStorage.setItem("ironwear-cart", JSON.stringify(items));
-}, [items]);
+  useEffect(() => {
+    if (!hasLoadedCart) {
+      return;
+    }
+
+    window.localStorage.setItem(
+      "ironwear-cart",
+      JSON.stringify(items),
+    );
+  }, [items, hasLoadedCart]);
 
   function addItem(product, variant, quantity = 1) {
     if (!product || !variant || quantity < 1) {
@@ -86,7 +96,10 @@ useEffect(() => {
           item.variantId === variantId
             ? {
                 ...item,
-                quantity: Math.min(Math.max(quantity, 0), item.stock),
+                quantity: Math.min(
+                  Math.max(quantity, 0),
+                  item.stock,
+                ),
               }
             : item,
         )
@@ -94,9 +107,10 @@ useEffect(() => {
     );
   }
 
-  function clearCart() {
-    setItems([]);
-  }
+  const clearCart = useCallback(() => {
+  window.localStorage.setItem("ironwear-cart", "[]");
+  setItems([]);
+}, []);
 
   const itemCount = useMemo(
     () => items.reduce((total, item) => total + item.quantity, 0),
@@ -106,23 +120,29 @@ useEffect(() => {
   const subtotalInCents = useMemo(
     () =>
       items.reduce(
-        (total, item) => total + item.priceInCents * item.quantity,
+        (total, item) =>
+          total + item.priceInCents * item.quantity,
         0,
       ),
     [items],
   );
 
   const value = {
-  items,
-  itemCount,
-  subtotalInCents,
-  addItem,
-  removeItem,
-  updateQuantity,
-  clearCart,
-};
+    items,
+    itemCount,
+    subtotalInCents,
+    addItem,
+    removeItem,
+    updateQuantity,
+    clearCart,
+    hasLoadedCart,
+  };
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+    </CartContext.Provider>
+  );
 }
 
 export function useCart() {
