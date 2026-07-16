@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Image from "next/image";
+import AddToCartForm from "@/components/AddToCartForm";
 
 export const dynamic = "force-dynamic";
 
@@ -106,35 +107,9 @@ export default async function ProductPage({ params }) {
             {product.description}
           </p>
 
-          <div className="mt-8">
-            <h2 className="font-semibold">Available sizes</h2>
+          
 
-            <div className="mt-3 flex flex-wrap gap-2">
-              {sizes.map((size) => (
-                <span
-                  key={size}
-                  className="rounded-md border border-gray-700 px-4 py-2 text-sm"
-                >
-                  {size}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-8">
-            <h2 className="font-semibold">Available colors</h2>
-
-            <div className="mt-3 flex flex-wrap gap-2">
-              {colors.map((color) => (
-                <span
-                  key={color}
-                  className="rounded-md border border-gray-700 px-4 py-2 text-sm"
-                >
-                  {color}
-                </span>
-              ))}
-            </div>
-          </div>
+         
 
           <p className="mt-8 text-sm text-gray-400">
             {totalStock > 0
@@ -142,13 +117,22 @@ export default async function ProductPage({ params }) {
               : "Currently sold out"}
           </p>
 
-          <button
-            type="button"
-            disabled
-            className="mt-6 w-full rounded-md bg-white px-6 py-3 font-semibold text-black opacity-60"
-          >
-            Add to cart coming next
-          </button>
+          <AddToCartForm
+  product={{
+    id: product.id,
+    slug: product.slug,
+    name: product.name,
+    priceInCents: product.priceInCents,
+    imageUrl: product.images[0]?.url ?? null,
+    imageAlt: product.images[0]?.altText ?? product.name,
+    variants: product.variants.map((variant) => ({
+      id: variant.id,
+      size: variant.size,
+      color: variant.color,
+      stock: variant.stock,
+    })),
+  }}
+/>
         </div>
       </div>
     </section>
