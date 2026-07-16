@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
-"paths": {
+    "paths": {
   "@/*": ["./src/*"]
 },
+   
     "target": "ES2017",
     "lib": [
       "dom",

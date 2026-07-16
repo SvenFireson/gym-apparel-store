@@ -1,12 +1,125 @@
 "use client";
 
+import { useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 
 export default function CheckoutPage() {
-  const { items, subtotalInCents } = useCart();
+  const { items, subtotalInCents, clearCart } = useCart();
+  const isHydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
+const [isSubmitting, setIsSubmitting] = useState(false);
+const [errorMessage, setErrorMessage] = useState("");
+const [completedOrder, setCompletedOrder] = useState(null);
+async function handleSubmit(event) {
+  event.preventDefault();
+
+  setIsSubmitting(true);
+  setErrorMessage("");
+
+  try {
+    const formData = new FormData(event.currentTarget);
+
+    const response = await fetch("/api/orders", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: formData.get("email"),
+        firstName: formData.get("firstName"),
+        lastName: formData.get("lastName"),
+        addressLine1: formData.get("address"),
+        city: formData.get("city"),
+        state: formData.get("state"),
+        postalCode: formData.get("postalCode"),
+        country: formData.get("country"),
+        items: items.map((item) => ({
+          variantId: item.variantId,
+          quantity: item.quantity,
+        })),
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Unable to create your order.");
+    }
+
+    setCompletedOrder(data.order);
+    clearCart();
+  } catch (error) {
+    console.error("Checkout failed:", error);
+
+    setErrorMessage(
+      error instanceof Error
+        ? error.message
+        : "Something went wrong while creating your order.",
+    );
+  } finally {
+    setIsSubmitting(false);
+  }
+}
+if (!isHydrated) {
+  return (
+    <section className="mx-auto max-w-7xl px-6 py-12">
+      <p className="text-gray-400">Loading checkout...</p>
+    </section>
+  );
+}
+if (completedOrder) {
+  return (
+    <section className="mx-auto max-w-3xl px-6 py-16 text-center">
+      <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gray-500">
+        Order received
+      </p>
+
+      <h1 className="mt-3 text-4xl font-bold">
+        Thank you for your order
+      </h1>
+
+      <p className="mt-5 text-gray-400">
+        Your order has been successfully saved.
+      </p>
+
+      <div className="mx-auto mt-8 max-w-md rounded-2xl border border-gray-800 bg-gray-950 p-6 text-left">
+        <div className="flex justify-between gap-4">
+          <span className="text-gray-400">Order number</span>
+          <span className="font-semibold">
+            {completedOrder.orderNumber}
+          </span>
+        </div>
+
+        <div className="mt-4 flex justify-between gap-4">
+          <span className="text-gray-400">Status</span>
+          <span className="font-semibold">
+            {completedOrder.status}
+          </span>
+        </div>
+
+        <div className="mt-4 flex justify-between gap-4">
+          <span className="text-gray-400">Total</span>
+          <span className="font-semibold">
+            ${(completedOrder.totalInCents / 100).toFixed(2)}
+          </span>
+        </div>
+      </div>
+
+      <Link
+        href="/products"
+        className="mt-8 inline-block rounded-md bg-white px-6 py-3 font-semibold text-black transition hover:bg-gray-200"
+      >
+        Continue shopping
+      </Link>
+    </section>
+  );
+}
   if (items.length === 0) {
     return (
       <section className="mx-auto max-w-3xl px-6 py-16 text-center">
@@ -37,7 +150,7 @@ export default function CheckoutPage() {
       </div>
 
       <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_420px]">
-        <form className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-8">
           <fieldset className="rounded-2xl border border-gray-800 bg-gray-950 p-6">
             <legend className="px-2 text-xl font-semibold">
               Contact information
@@ -195,17 +308,25 @@ export default function CheckoutPage() {
               </div>
             </div>
           </fieldset>
-
-          <button
+                {errorMessage ? (
+                <div
+                    role="alert"
+                    className="rounded-md border border-red-900 bg-red-950/40 px-4 py-3 text-sm text-red-300"
+                >
+                     {errorMessage}
+                </div>
+                ) : null}
+         <button
             type="submit"
-            className="w-full rounded-md bg-white px-6 py-3 font-semibold text-black transition hover:bg-gray-200"
-          >
-            Continue to payment
-          </button>
+            disabled={isSubmitting}
+            className="w-full rounded-md bg-white px-6 py-3 font-semibold text-black transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+            {isSubmitting ? "Creating order..." : "Place test order"}
+        </button>
 
           <p className="text-center text-sm text-gray-500">
-            Payment processing will be connected in the next milestone.
-          </p>
+            Payment is not collected yet. Stripe will be added next.
+        </p>
         </form>
 
         <aside className="h-fit rounded-2xl border border-gray-800 bg-gray-950 p-6 lg:sticky lg:top-6">
