@@ -71,6 +71,64 @@ export async function POST(request) {
         });
       }
     }
+    if (event.type === "checkout.session.expired") {
+  const session = event.data.object;
+  const orderId = session.metadata?.orderId;
+
+  if (!orderId) {
+    console.error(
+      "Expired Stripe session does not contain an orderId.",
+      session.id,
+    );
+
+    return Response.json(
+      { error: "Order metadata is missing." },
+      { status: 400 },
+    );
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findFirst({
+      where: {
+        id: orderId,
+        status: "PENDING",
+      },
+      include: {
+        items: true,
+      },
+    });
+
+    if (!order) {
+      return;
+    }
+
+    for (const item of order.items) {
+      if (!item.productVariantId) {
+        continue;
+      }
+
+      await tx.productVariant.update({
+        where: {
+          id: item.productVariantId,
+        },
+        data: {
+          stock: {
+            increment: item.quantity,
+          },
+        },
+      });
+    }
+
+    await tx.order.update({
+      where: {
+        id: order.id,
+      },
+      data: {
+        status: "CANCELLED",
+      },
+    });
+  });
+}
 
     return Response.json({ received: true });
   } catch (error) {
