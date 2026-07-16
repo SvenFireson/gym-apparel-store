@@ -1,28 +1,32 @@
 import Link from "next/link";
 import "./globals.css";
+
+import { auth } from "@/auth/auth";
 import { CartProvider } from "@/context/CartContext";
-import HeaderNav from "@/components/HeaderNav";
 
 export const metadata = {
   title: "Gym Apparel Store",
   description: "Performance gym and fitness apparel.",
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const session = await auth();
+
   return (
     <html lang="en">
       <body className="flex min-h-screen flex-col bg-white text-gray-900">
         <CartProvider>
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
+          <Header user={session?.user ?? null} />
+
+          <main className="flex-1">{children}</main>
+
+          <Footer />
         </CartProvider>
       </body>
     </html>
   );
 }
-
-function Header() {
+function Header({ user }) {
   return (
     <header className="border-b border-gray-200">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
@@ -30,7 +34,35 @@ function Header() {
           IRONWEAR
         </Link>
 
-        <HeaderNav />
+        <nav className="flex items-center gap-6 text-sm font-medium">
+  <Link href="/" className="transition hover:text-gray-500">
+    Home
+  </Link>
+
+  <Link href="/products" className="transition hover:text-gray-500">
+    Shop
+  </Link>
+
+  <Link href="/cart" className="transition hover:text-gray-500">
+    Cart
+  </Link>
+
+  {user ? (
+  <>
+    <Link href="/account" className="transition hover:text-gray-500">
+      Account
+    </Link>
+
+    <Link href="/api/auth/signout" className="transition hover:text-gray-500">
+      Sign out
+    </Link>
+  </>
+) : (
+  <Link href="/login" className="transition hover:text-gray-500">
+    Sign in
+  </Link>
+)}
+</nav>
       </div>
     </header>
   );
