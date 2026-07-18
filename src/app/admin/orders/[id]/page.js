@@ -1,9 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-
+import OrderStatusForm from "./OrderStatusForm";
 import { auth } from "@/auth/auth";
 import { prisma } from "@/lib/prisma";
+
+function formatMoney(amountInCents) {
+  return `$${(amountInCents / 100).toFixed(2)}`;
+}
 
 function formatOrderDate(date) {
   return new Intl.DateTimeFormat("en-US", {
@@ -15,39 +19,41 @@ function formatOrderDate(date) {
   }).format(date);
 }
 
-function formatMoney(amountInCents) {
-  return `$${(amountInCents / 100).toFixed(2)}`;
-}
-
-export default async function OrderDetailsPage({ params }) {
+export default async function AdminOrderDetailsPage({ params }) {
   const session = await auth();
 
   if (!session?.user?.email) {
     redirect("/login");
   }
 
-  const { id } = await params;
-
-  const user = await prisma.user.findUnique({
+  const admin = await prisma.user.findUnique({
     where: {
       email: session.user.email.trim().toLowerCase(),
     },
     select: {
-      id: true,
+      role: true,
     },
   });
 
-  if (!user) {
-    redirect("/login");
+  if (!admin || admin.role !== "ADMIN") {
+    redirect("/account");
   }
 
-  const order = await prisma.order.findFirst({
+  const { id } = await params;
+
+  const order = await prisma.order.findUnique({
     where: {
       id,
-      userId: user.id,
     },
     include: {
       items: true,
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
     },
   });
 
@@ -56,11 +62,11 @@ export default async function OrderDetailsPage({ params }) {
   }
 
   return (
-    <section className="mx-auto max-w-5xl px-6 py-16">
+    <section className="mx-auto max-w-6xl px-6 py-16">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gray-500">
-            Order details
+            Admin order
           </p>
 
           <h1 className="mt-3 break-all text-3xl font-bold sm:text-4xl">
@@ -73,8 +79,8 @@ export default async function OrderDetailsPage({ params }) {
         </div>
 
         <Link
-          href="/account/orders"
-          className="text-sm font-semibold text-gray-300 underline transition hover:text-white"
+          href="/admin/orders"
+          className="text-sm font-semibold underline"
         >
           Back to orders
         </Link>
@@ -84,7 +90,7 @@ export default async function OrderDetailsPage({ params }) {
         <div className="space-y-6">
           <section className="rounded-2xl border border-gray-800 bg-gray-950 p-6">
             <div className="flex items-center justify-between gap-4">
-              <h2 className="text-xl font-semibold">Items</h2>
+              <h2 className="text-xl font-semibold">Purchased items</h2>
 
               <span className="rounded-full border border-gray-700 px-3 py-1 text-xs font-semibold">
                 {order.status}
@@ -121,6 +127,10 @@ export default async function OrderDetailsPage({ params }) {
                     </p>
 
                     <p className="mt-1 text-sm text-gray-500">
+                      SKU: {item.sku}
+                    </p>
+
+                    <p className="mt-1 text-sm text-gray-500">
                       Quantity: {item.quantity}
                     </p>
                   </div>
@@ -139,24 +149,44 @@ export default async function OrderDetailsPage({ params }) {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-gray-800 bg-gray-950 p-6">
-            <h2 className="text-xl font-semibold">Shipping address</h2>
+          <section className="grid gap-6 md:grid-cols-2">
+            <div className="rounded-2xl border border-gray-800 bg-gray-950 p-6">
+              <h2 className="text-xl font-semibold">Customer</h2>
 
-            <address className="mt-4 not-italic leading-7 text-gray-400">
-              <p className="text-white">
-                {order.firstName} {order.lastName}
-              </p>
+              <div className="mt-4 space-y-2 text-gray-400">
+                <p className="text-white">
+                  {order.firstName} {order.lastName}
+                </p>
 
-              <p>{order.addressLine1}</p>
+                <p className="break-all">{order.email}</p>
 
-              {order.addressLine2 ? <p>{order.addressLine2}</p> : null}
+                {order.phone ? <p>{order.phone}</p> : null}
 
-              <p>
-                {order.city}, {order.state} {order.postalCode}
-              </p>
+                <p>
+                  Account: {order.user ? "Registered customer" : "Guest"}
+                </p>
+              </div>
+            </div>
 
-              <p>{order.country}</p>
-            </address>
+            <div className="rounded-2xl border border-gray-800 bg-gray-950 p-6">
+              <h2 className="text-xl font-semibold">Shipping address</h2>
+
+              <address className="mt-4 not-italic leading-7 text-gray-400">
+                <p className="text-white">
+                  {order.firstName} {order.lastName}
+                </p>
+
+                <p>{order.addressLine1}</p>
+
+                {order.addressLine2 ? <p>{order.addressLine2}</p> : null}
+
+                <p>
+                  {order.city}, {order.state} {order.postalCode}
+                </p>
+
+                <p>{order.country}</p>
+              </address>
+            </div>
           </section>
         </div>
 
@@ -181,8 +211,19 @@ export default async function OrderDetailsPage({ params }) {
           </div>
 
           <div className="mt-6 border-t border-gray-800 pt-6">
-            <p className="text-sm text-gray-500">Contact email</p>
-            <p className="mt-1 break-all font-medium">{order.email}</p>
+            <p className="text-sm text-gray-500">
+              Stripe Checkout Session
+            </p>
+
+            <p className="mt-1 break-all text-sm">
+              {order.stripeCheckoutSessionId || "Not created"}
+
+            <OrderStatusForm
+                orderId={order.id}
+                currentStatus={order.status}
+            />
+
+            </p>
           </div>
         </aside>
       </div>
