@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-
+import OrderStatusBadge from "@/components/OrderStatusBadge";
 import { auth } from "@/auth/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -89,7 +89,7 @@ export default async function AdminOrdersPage() {
         </td>
 
         <td className="p-4">
-          {order.status}
+          <OrderStatusBadge status={order.status} />
         </td>
 
         <td className="p-4">

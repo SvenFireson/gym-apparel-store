@@ -86,9 +86,7 @@ export default async function OrderDetailsPage({ params }) {
             <div className="flex items-center justify-between gap-4">
               <h2 className="text-xl font-semibold">Items</h2>
 
-              <span className="rounded-full border border-gray-700 px-3 py-1 text-xs font-semibold">
-                {order.status}
-              </span>
+              <OrderStatusBadge status={order.status} />
             </div>
 
             <div className="mt-6 divide-y divide-gray-800">

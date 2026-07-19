@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import OrderStatusForm from "./OrderStatusForm";
 import { auth } from "@/auth/auth";
 import { prisma } from "@/lib/prisma";
+import OrderStatusBadge from "@/components/OrderStatusBadge";
 
 function formatMoney(amountInCents) {
   return `$${(amountInCents / 100).toFixed(2)}`;
@@ -92,9 +93,7 @@ export default async function AdminOrderDetailsPage({ params }) {
             <div className="flex items-center justify-between gap-4">
               <h2 className="text-xl font-semibold">Purchased items</h2>
 
-              <span className="rounded-full border border-gray-700 px-3 py-1 text-xs font-semibold">
-                {order.status}
-              </span>
+              <OrderStatusBadge status={order.status} />
             </div>
 
             <div className="mt-6 divide-y divide-gray-800">
@@ -218,13 +217,14 @@ export default async function AdminOrderDetailsPage({ params }) {
             <p className="mt-1 break-all text-sm">
               {order.stripeCheckoutSessionId || "Not created"}
 
-            <OrderStatusForm
-                orderId={order.id}
-                currentStatus={order.status}
-            />
+            
 
             </p>
           </div>
+          <OrderStatusForm
+                orderId={order.id}
+                currentStatus={order.status}
+            />
         </aside>
       </div>
     </section>

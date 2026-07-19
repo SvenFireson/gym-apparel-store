@@ -123,9 +123,7 @@ export default async function OrdersPage() {
                 </div>
 
                 <div className="flex flex-col items-start gap-3 lg:items-end">
-                  <span className="rounded-full border border-gray-700 px-3 py-1 text-xs font-semibold">
-                    {order.status}
-                  </span>
+                  <OrderStatusBadge status={order.status} />
 
                   <Link
                     href={`/account/orders/${order.id}`}
