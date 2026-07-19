@@ -39,12 +39,14 @@ export async function POST(request) {
 
       return Response.json(
         {
-          error: error.message || "Email could not be sent.",
+        error: error.message || "Email could not be sent.",
+          details: error,
         },
         {
           status: 500,
         },
       );
+
     }
 
     return Response.json({
