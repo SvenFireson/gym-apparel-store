@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
+import { sendOrderConfirmationEmail } from "@/lib/order-email";
 
 export async function POST(request) {
   const body = await request.text();
@@ -59,7 +60,7 @@ export async function POST(request) {
       }
 
       if (session.payment_status === "paid") {
-  await prisma.order.updateMany({
+  const updateResult = await prisma.order.updateMany({
     where: {
       id: orderId,
       status: {
@@ -71,6 +72,32 @@ export async function POST(request) {
       stripeCheckoutSessionId: session.id,
     },
   });
+
+  if (updateResult.count > 0) {
+    const order = await prisma.order.findUnique({
+      where: {
+        id: orderId,
+      },
+      include: {
+        items: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    });
+
+    if (order) {
+      try {
+        await sendOrderConfirmationEmail(order);
+      } catch (emailError) {
+        console.error(
+          "Order confirmation email failed:",
+          emailError,
+        );
+      }
+    }
+  }
 }
     }
     if (event.type === "checkout.session.expired") {
