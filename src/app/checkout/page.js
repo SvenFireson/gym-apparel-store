@@ -5,17 +5,21 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import CheckoutCouponForm from "@/components/CheckoutCouponForm";
+import ShippingMethodSelector from "@/components/ShippingMethodSelector";
 
 export default function CheckoutPage() {
   const { items, subtotalInCents, clearCart } = useCart();
 
   const [appliedCoupon, setAppliedCoupon] =
   useState(null);
+  const [selectedShippingMethod, setSelectedShippingMethod] =
+  useState(null);
 
   const discountInCents =
   appliedCoupon?.discountInCents || 0;
+  const shippingInCents =
+  selectedShippingMethod?.calculatedPriceInCents || 0;
 
-const shippingInCents = 0;
 
 const totalInCents = Math.max(
   subtotalInCents -
@@ -34,6 +38,11 @@ const [errorMessage, setErrorMessage] = useState("");
 const [completedOrder, setCompletedOrder] = useState(null);
 async function handleSubmit(event) {
   event.preventDefault();
+
+  if (!selectedShippingMethod) {
+  setErrorMessage("Please select a shipping method.");
+  return;
+}
 
   setIsSubmitting(true);
   setErrorMessage("");
@@ -60,6 +69,8 @@ async function handleSubmit(event) {
           quantity: item.quantity,
         })),
         couponCode: appliedCoupon?.code || null,
+        shippingMethodCode:
+        selectedShippingMethod?.code || null,
       }),
     });
 
@@ -368,6 +379,12 @@ if (completedOrder) {
         </form>
 
         <aside className="h-fit space-y-6 lg:sticky lg:top-6">
+
+            <ShippingMethodSelector
+            subtotalInCents={subtotalInCents}
+            selectedShippingMethod={selectedShippingMethod}
+            onShippingMethodChange={setSelectedShippingMethod}
+            />
             <CheckoutCouponForm
             subtotalInCents={subtotalInCents}
             appliedCoupon={appliedCoupon}
@@ -437,7 +454,11 @@ if (completedOrder) {
 
             <div className="flex justify-between text-gray-400">
               <span>Shipping</span>
-              <span>Calculated later</span>
+              <span>
+            {shippingInCents === 0
+              ? "Free"
+              : `$${(shippingInCents / 100).toFixed(2)}`}
+            </span>
             </div>
 
             <div className="flex justify-between border-t border-gray-800 pt-4 text-xl font-semibold">

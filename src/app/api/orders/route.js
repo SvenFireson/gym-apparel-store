@@ -11,11 +11,17 @@ function createOrderNumber() {
 
 export async function POST(request) {
   try {
-   const body = await request.json();
-   const couponCode =
-  typeof body.couponCode === "string"
-    ? body.couponCode.trim().toUpperCase()
-    : null;
+    const body = await request.json();
+
+    const couponCode =
+      typeof body.couponCode === "string"
+        ? body.couponCode.trim().toUpperCase()
+        : null;
+
+    const shippingMethodCode =
+      typeof body.shippingMethodCode === "string"
+        ? body.shippingMethodCode.trim().toUpperCase()
+        : null;
 
     const email = body.email?.trim().toLowerCase();
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -26,11 +32,10 @@ export async function POST(request) {
     const state = body.state?.trim();
     const postalCode = body.postalCode?.trim();
     const country = body.country?.trim();
-        const session = await auth();
 
-console.log("ORDER SESSION:", session);
+    const session = await auth();
 
-let userId = null;
+    let userId = null;
 
     if (session?.user?.email) {
       const user = await prisma.user.findUnique({
@@ -60,12 +65,20 @@ let userId = null;
         { status: 400 },
       );
     }
+
     if (!emailPattern.test(email)) {
-  return Response.json(
-    { error: "Please enter a valid email address." },
-    { status: 400 },
-  );
-}
+      return Response.json(
+        { error: "Please enter a valid email address." },
+        { status: 400 },
+      );
+    }
+
+    if (!shippingMethodCode) {
+      return Response.json(
+        { error: "Please select a shipping method." },
+        { status: 400 },
+      );
+    }
 
     if (!Array.isArray(body.items) || body.items.length === 0) {
       return Response.json(
@@ -90,7 +103,11 @@ let userId = null;
     }
 
     const requestedItems = body.items;
-    const variantIds = [...new Set(requestedItems.map((item) => item.variantId))];
+    const variantIds = [
+      ...new Set(
+        requestedItems.map((item) => item.variantId),
+      ),
+    ];
 
     const variants = await prisma.productVariant.findMany({
       where: {
@@ -130,7 +147,9 @@ let userId = null;
       const variant = variantMap.get(item.variantId);
 
       if (!variant) {
-        throw new Error(`Variant ${item.variantId} was not found.`);
+        throw new Error(
+          `Variant ${item.variantId} was not found.`,
+        );
       }
 
       if (item.quantity > variant.stock) {
@@ -162,104 +181,165 @@ let userId = null;
     );
 
     let appliedCoupon = null;
-let discountInCents = 0;
+    let discountInCents = 0;
 
-if (couponCode) {
-  const couponResult = await validateCoupon({
-    code: couponCode,
-    subtotalInCents,
-  });
+    if (couponCode) {
+      const couponResult = await validateCoupon({
+        code: couponCode,
+        subtotalInCents,
+      });
 
-  if (!couponResult.valid) {
-    return Response.json(
-      {
-        error:
-          couponResult.message ||
-          "This coupon could not be applied.",
-      },
-      {
-        status: 400,
-      },
-    );
-  }
+      if (!couponResult.valid) {
+        return Response.json(
+          {
+            error:
+              couponResult.message ||
+              "This coupon could not be applied.",
+          },
+          {
+            status: 400,
+          },
+        );
+      }
 
-  appliedCoupon = couponResult.coupon;
-  discountInCents = couponResult.discountInCents;
-}
-
-const shippingInCents = 0;
-
-const totalInCents = Math.max(
-  subtotalInCents -
-    discountInCents +
-    shippingInCents,
-  0,
-);
-
-    const order = await prisma.$transaction(async (tx) => {
-  for (const item of requestedItems) {
-    const variant = variantMap.get(item.variantId);
-
-    if (!variant) {
-      throw new Error(`Variant ${item.variantId} was not found.`);
+      appliedCoupon = couponResult.coupon;
+      discountInCents = couponResult.discountInCents;
     }
 
-    const updatedVariant = await tx.productVariant.updateMany({
-      where: {
-        id: variant.id,
-        stock: {
-          gte: item.quantity,
+    const shippingMethod =
+      await prisma.shippingMethod.findFirst({
+        where: {
+          code: shippingMethodCode,
+          isActive: true,
         },
-      },
-      data: {
-        stock: {
-          decrement: item.quantity,
-        },
-      },
-    });
+      });
 
-    if (updatedVariant.count !== 1) {
-      throw new Error(
-        `${variant.product.name} no longer has enough stock available.`,
+    if (!shippingMethod) {
+      return Response.json(
+        {
+          error:
+            "The selected shipping method is unavailable.",
+        },
+        { status: 400 },
       );
     }
-  }
-console.log("ORDER USER ID:", userId);
-  return tx.order.create({
-    data: {
-      orderNumber: createOrderNumber(),
-      userId,
-      email,
-      firstName,
-      lastName,
-      phone: body.phone?.trim() || null,
-      addressLine1,
-      addressLine2: body.addressLine2?.trim() || null,
-      city,
-      state,
-      postalCode,
-      country,
-     subtotalInCents,
-      discountInCents,
-      shippingInCents,
-      totalInCents,
-      couponId: appliedCoupon?.id || null,
-      couponCode: appliedCoupon?.code || null,
-      items: {
-        create: orderItems,
+
+    const qualifiesForFreeShipping =
+      shippingMethod.freeAboveCents !== null &&
+      subtotalInCents >= shippingMethod.freeAboveCents;
+
+    const shippingInCents = qualifiesForFreeShipping
+      ? 0
+      : shippingMethod.priceInCents;
+
+    const totalInCents = Math.max(
+      subtotalInCents -
+        discountInCents +
+        shippingInCents,
+      0,
+    );
+
+    const order = await prisma.$transaction(async (tx) => {
+      for (const item of requestedItems) {
+        const variant = variantMap.get(item.variantId);
+
+        if (!variant) {
+          throw new Error(
+            `Variant ${item.variantId} was not found.`,
+          );
+        }
+
+        const updatedVariant =
+          await tx.productVariant.updateMany({
+            where: {
+              id: variant.id,
+              stock: {
+                gte: item.quantity,
+              },
+            },
+            data: {
+              stock: {
+                decrement: item.quantity,
+              },
+            },
+          });
+
+        if (updatedVariant.count !== 1) {
+          throw new Error(
+            `${variant.product.name} no longer has enough stock available.`,
+          );
+        }
+      }
+
+      return tx.order.create({
+        data: {
+          orderNumber: createOrderNumber(),
+
+...(userId
+  ? {
+      user: {
+        connect: {
+          id: userId,
+        },
       },
-    },
-    select: {
-  id: true,
-  orderNumber: true,
-  status: true,
-  subtotalInCents: true,
-  discountInCents: true,
-  totalInCents: true,
-  couponCode: true,
+    }
+  : {}),
+
+email,
+firstName,
+lastName,
+phone: body.phone?.trim() || null,
+addressLine1,
+addressLine2: body.addressLine2?.trim() || null,
+city,
+state,
+postalCode,
+country,
+
+subtotalInCents,
+discountInCents,
+shippingInCents,
+totalInCents,
+
+shippingMethod: {
+  connect: {
+    id: shippingMethod.id,
+  },
 },
-  });
-});
+shippingMethodCode: shippingMethod.code,
+shippingMethodName: shippingMethod.name,
+
+...(appliedCoupon
+  ? {
+      coupon: {
+        connect: {
+          id: appliedCoupon.id,
+        },
+      },
+      couponCode: appliedCoupon.code,
+    }
+  : {
+      couponCode: null,
+    }),
+
+items: {
+  create: orderItems,
+},
+        },
+        select: {
+          id: true,
+          orderNumber: true,
+          status: true,
+          subtotalInCents: true,
+          discountInCents: true,
+          shippingInCents: true,
+          shippingMethodCode: true,
+          shippingMethodName: true,
+          totalInCents: true,
+          couponCode: true,
+        },
+      });
+    });
 
     return Response.json(
       {
@@ -276,6 +356,9 @@ console.log("ORDER USER ID:", userId);
         ? error.message
         : "Unable to create the order.";
 
-    return Response.json({ error: message }, { status: 500 });
+    return Response.json(
+      { error: message },
+      { status: 500 },
+    );
   }
 }
