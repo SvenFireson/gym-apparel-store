@@ -59,17 +59,19 @@ export async function POST(request) {
       }
 
       if (session.payment_status === "paid") {
-        await prisma.order.updateMany({
-          where: {
-            id: orderId,
-            status: "PENDING",
-          },
-          data: {
-            status: "PAID",
-            stripeCheckoutSessionId: session.id,
-          },
-        });
-      }
+  await prisma.order.updateMany({
+    where: {
+      id: orderId,
+      status: {
+        in: ["PENDING", "PAID"],
+      },
+    },
+    data: {
+      status: "PROCESSING",
+      stripeCheckoutSessionId: session.id,
+    },
+  });
+}
     }
     if (event.type === "checkout.session.expired") {
   const session = event.data.object;
