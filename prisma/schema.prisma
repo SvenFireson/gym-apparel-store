@@ -18,6 +18,20 @@ enum ProductCategory {
   ACCESSORIES
 }
 
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
 model Product {
   id           String           @id @default(cuid())
   name         String
@@ -118,15 +132,6 @@ model ProductVariant {
   @@index([productId])
 }
 
-enum OrderStatus {
-  PENDING
-  PAID
-  PROCESSING
-  SHIPPED
-  DELIVERED
-  CANCELLED
-}
-
 model Order {
   id                      String      @id @default(cuid())
   orderNumber             String      @unique
@@ -149,8 +154,13 @@ model Order {
   country      String
 
   subtotalInCents Int
+  discountInCents Int @default(0)
   shippingInCents Int @default(0)
   totalInCents    Int
+
+  couponId   String?
+  couponCode String?
+  coupon     Coupon? @relation(fields: [couponId], references: [id], onDelete: SetNull)
 
   items OrderItem[]
 
@@ -161,6 +171,7 @@ model Order {
   @@index([status])
   @@index([createdAt])
   @@index([userId])
+  @@index([couponId])
 }
 
 model OrderItem {
@@ -177,12 +188,33 @@ model OrderItem {
   unitPriceInCents Int
   quantity         Int
   lineTotalInCents Int
+  createdAt        DateTime @default(now())
 
   order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productVariant ProductVariant? @relation(fields: [productVariantId], references: [id], onDelete: SetNull)
 
-  createdAt DateTime @default(now())
-
   @@index([orderId])
   @@index([productVariantId])
+}
+
+model Coupon {
+  id                String       @id @default(cuid())
+  code              String       @unique
+  description       String?
+  discountType      DiscountType
+  discountValue     Int
+  minimumSpendCents Int          @default(0)
+  maximumUses       Int?
+  timesUsed         Int          @default(0)
+  isActive          Boolean      @default(true)
+  startsAt          DateTime?
+  expiresAt         DateTime?
+
+  orders Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([expiresAt])
 }

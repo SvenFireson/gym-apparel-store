@@ -4,9 +4,25 @@ import { useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
+import CheckoutCouponForm from "@/components/CheckoutCouponForm";
 
 export default function CheckoutPage() {
   const { items, subtotalInCents, clearCart } = useCart();
+
+  const [appliedCoupon, setAppliedCoupon] =
+  useState(null);
+
+  const discountInCents =
+  appliedCoupon?.discountInCents || 0;
+
+const shippingInCents = 0;
+
+const totalInCents = Math.max(
+  subtotalInCents -
+    discountInCents +
+    shippingInCents,
+  0,
+);
   const isHydrated = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -43,6 +59,7 @@ async function handleSubmit(event) {
           variantId: item.variantId,
           quantity: item.quantity,
         })),
+        couponCode: appliedCoupon?.code || null,
       }),
     });
 
@@ -350,7 +367,15 @@ if (completedOrder) {
           </p>
         </form>
 
-        <aside className="h-fit rounded-2xl border border-gray-800 bg-gray-950 p-6 lg:sticky lg:top-6">
+        <aside className="h-fit space-y-6 lg:sticky lg:top-6">
+            <CheckoutCouponForm
+            subtotalInCents={subtotalInCents}
+            appliedCoupon={appliedCoupon}
+            onCouponApplied={setAppliedCoupon}
+            onCouponRemoved={() => setAppliedCoupon(null)}
+           />
+
+        <div className="rounded-2xl border border-gray-800 bg-gray-950 p-6">
           <h2 className="text-xl font-semibold">Order Summary</h2>
 
           <div className="mt-6 space-y-5">
@@ -395,6 +420,20 @@ if (completedOrder) {
               <span>Subtotal</span>
               <span>${(subtotalInCents / 100).toFixed(2)}</span>
             </div>
+            {discountInCents > 0 ? (
+            <div className="flex justify-between text-green-400">
+              <span>
+              Discount
+              {appliedCoupon?.code
+              ? ` (${appliedCoupon.code})`
+              : ""}
+            </span>
+
+            <span>
+            -${(discountInCents / 100).toFixed(2)}
+            </span>
+            </div>
+            ) : null}
 
             <div className="flex justify-between text-gray-400">
               <span>Shipping</span>
@@ -403,7 +442,8 @@ if (completedOrder) {
 
             <div className="flex justify-between border-t border-gray-800 pt-4 text-xl font-semibold">
               <span>Total</span>
-              <span>${(subtotalInCents / 100).toFixed(2)}</span>
+              <span>${(totalInCents / 100).toFixed(2)}</span>
+            </div>
             </div>
           </div>
         </aside>

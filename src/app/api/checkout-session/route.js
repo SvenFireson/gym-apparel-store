@@ -51,31 +51,46 @@ export async function POST(request) {
     const appUrl =
       process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
+    const lineItems = order.items.map((item) => ({
+      quantity: item.quantity,
+      price_data: {
+        currency: "usd",
+        unit_amount: item.unitPriceInCents,
+        product_data: {
+          name: item.productName,
+          description: `${item.size} · ${item.color}`,
+          images: item.imageUrl
+            ? [`${appUrl}${item.imageUrl}`]
+            : undefined,
+        },
+      },
+    }));
+
+    
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       customer_email: order.email,
       expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
-
-      line_items: order.items.map((item) => ({
-        quantity: item.quantity,
-        price_data: {
-          currency: "usd",
-          unit_amount: item.unitPriceInCents,
-          product_data: {
-            name: item.productName,
-            description: `${item.size} · ${item.color}`,
-            images: item.imageUrl
-              ? [`${appUrl}${item.imageUrl}`]
-              : undefined,
-          },
-        },
-      })),
-
+      line_items: [
+  {
+    quantity: 1,
+    price_data: {
+      currency: "usd",
+      unit_amount: order.totalInCents,
+      product_data: {
+        name: `IRONWEAR Order ${order.orderNumber}`,
+        description: order.couponCode
+          ? `Includes coupon ${order.couponCode}`
+          : `${order.items.length} item(s)`,
+      },
+    },
+  },
+],
       metadata: {
         orderId: order.id,
         orderNumber: order.orderNumber,
       },
-
       success_url:
         `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/checkout?cancelled=true`,

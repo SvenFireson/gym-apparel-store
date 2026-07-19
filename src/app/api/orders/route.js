@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth/auth";
+import { validateCoupon } from "@/lib/coupons";
 
 function createOrderNumber() {
   const timestamp = Date.now().toString();
@@ -11,6 +12,10 @@ function createOrderNumber() {
 export async function POST(request) {
   try {
    const body = await request.json();
+   const couponCode =
+  typeof body.couponCode === "string"
+    ? body.couponCode.trim().toUpperCase()
+    : null;
 
     const email = body.email?.trim().toLowerCase();
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -156,8 +161,40 @@ let userId = null;
       0,
     );
 
-    const shippingInCents = 0;
-    const totalInCents = subtotalInCents + shippingInCents;
+    let appliedCoupon = null;
+let discountInCents = 0;
+
+if (couponCode) {
+  const couponResult = await validateCoupon({
+    code: couponCode,
+    subtotalInCents,
+  });
+
+  if (!couponResult.valid) {
+    return Response.json(
+      {
+        error:
+          couponResult.message ||
+          "This coupon could not be applied.",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+
+  appliedCoupon = couponResult.coupon;
+  discountInCents = couponResult.discountInCents;
+}
+
+const shippingInCents = 0;
+
+const totalInCents = Math.max(
+  subtotalInCents -
+    discountInCents +
+    shippingInCents,
+  0,
+);
 
     const order = await prisma.$transaction(async (tx) => {
   for (const item of requestedItems) {
@@ -202,19 +239,25 @@ console.log("ORDER USER ID:", userId);
       state,
       postalCode,
       country,
-      subtotalInCents,
+     subtotalInCents,
+      discountInCents,
       shippingInCents,
       totalInCents,
+      couponId: appliedCoupon?.id || null,
+      couponCode: appliedCoupon?.code || null,
       items: {
         create: orderItems,
       },
     },
     select: {
-      id: true,
-      orderNumber: true,
-      status: true,
-      totalInCents: true,
-    },
+  id: true,
+  orderNumber: true,
+  status: true,
+  subtotalInCents: true,
+  discountInCents: true,
+  totalInCents: true,
+  couponCode: true,
+},
   });
 });
 

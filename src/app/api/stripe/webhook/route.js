@@ -43,63 +43,93 @@ export async function POST(request) {
   }
 
   try {
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object;
-      const orderId = session.metadata?.orderId;
+   if (event.type === "checkout.session.completed") {
+  const session = event.data.object;
+  const orderId = session.metadata?.orderId;
 
-      if (!orderId) {
-        console.error(
-          "Stripe Checkout Session does not contain an orderId.",
-          session.id,
-        );
+ 
+  
+ 
 
-        return Response.json(
-          { error: "Order metadata is missing." },
-          { status: 400 },
-        );
-      }
+  if (!orderId) {
+    console.error(
+      "Stripe Checkout Session does not contain an orderId.",
+      session.id,
+    );
 
-      if (session.payment_status === "paid") {
-  const updateResult = await prisma.order.updateMany({
-    where: {
-      id: orderId,
-      status: {
-        in: ["PENDING", "PAID"],
-      },
-    },
-    data: {
-      status: "PROCESSING",
-      stripeCheckoutSessionId: session.id,
-    },
-  });
+    return Response.json(
+      { error: "Order metadata is missing." },
+      { status: 400 },
+    );
+  }
 
-  if (updateResult.count > 0) {
-    const order = await prisma.order.findUnique({
+  
+
+  if (session.payment_status === "paid") {
+    const updateResult = await prisma.order.updateMany({
       where: {
         id: orderId,
-      },
-      include: {
-        items: {
-          orderBy: {
-            createdAt: "asc",
-          },
+        status: {
+          in: ["PENDING", "PAID"],
         },
+      },
+      data: {
+        status: "PROCESSING",
+        stripeCheckoutSessionId: session.id,
       },
     });
 
-    if (order) {
-      try {
-        await sendOrderConfirmationEmail(order);
-      } catch (emailError) {
-        console.error(
-          "Order confirmation email failed:",
-          emailError,
-        );
+  
+
+    if (updateResult.count > 0) {
+      const order = await prisma.order.findUnique({
+        where: {
+          id: orderId,
+        },
+        include: {
+          items: {
+            orderBy: {
+              createdAt: "asc",
+            },
+          },
+        },
+      });
+
+      
+      console.log(
+  `Coupon usage incremented for ${order.couponCode}`,
+);
+
+      if (order) {
+        if (order.couponId) {
+          await prisma.coupon.update({
+            where: {
+              id: order.couponId,
+            },
+            data: {
+              timesUsed: {
+                increment: 1,
+              },
+            },
+          });
+
+          console.log(
+            `Coupon usage incremented for ${order.couponCode}`,
+          );
+        }
+
+        try {
+          await sendOrderConfirmationEmail(order);
+        } catch (emailError) {
+          console.error(
+            "Order confirmation email failed:",
+            emailError,
+          );
+        }
       }
     }
   }
 }
-    }
     if (event.type === "checkout.session.expired") {
   const session = event.data.object;
   const orderId = session.metadata?.orderId;
