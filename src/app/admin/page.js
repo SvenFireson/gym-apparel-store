@@ -30,48 +30,7 @@ export default async function AdminDashboardPage() {
     redirect("/account");
   }
 
-  const [
-    productCount,
-    orderCount,
-    customerCount,
-    paidOrderTotals,
-    recentOrders,
-  ] = await Promise.all([
-    prisma.product.count(),
-
-    prisma.order.count(),
-
-    prisma.user.count({
-      where: {
-        role: "CUSTOMER",
-      },
-    }),
-
-    prisma.order.aggregate({
-      where: {
-        status: "PAID",
-      },
-      _sum: {
-        totalInCents: true,
-      },
-    }),
-
-    prisma.order.findMany({
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: 5,
-      select: {
-        id: true,
-        orderNumber: true,
-        firstName: true,
-        lastName: true,
-        status: true,
-        totalInCents: true,
-        createdAt: true,
-      },
-    }),
-  ]);
+  
 
   const revenueInCents = paidOrderTotals._sum.totalInCents ?? 0;
 
@@ -104,7 +63,80 @@ export default async function AdminDashboardPage() {
       href: "/admin/orders",
       linkText: "View sales",
     },
+    {
+      label: "Low stock",
+      value: lowStockVariants.length,
+      description: "Active variants with five or fewer units remaining.",
+      href: "/admin/products",
+      linkText: "Review inventory",
+    },
   ];
+  const [
+  productCount,
+  orderCount,
+  customerCount,
+  paidOrderTotals,
+  recentOrders,
+  lowStockVariants,
+] = await Promise.all([
+  prisma.product.count(),
+
+  prisma.order.count(),
+
+  prisma.user.count({
+    where: {
+      role: "CUSTOMER",
+    },
+  }),
+
+  prisma.order.aggregate({
+    where: {
+      status: "PAID",
+    },
+    _sum: {
+      totalInCents: true,
+    },
+  }),
+
+  prisma.order.findMany({
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 5,
+    select: {
+      id: true,
+      orderNumber: true,
+      firstName: true,
+      lastName: true,
+      status: true,
+      totalInCents: true,
+      createdAt: true,
+    },
+  }),
+
+  prisma.productVariant.findMany({
+    where: {
+      stock: {
+        lte: 5,
+      },
+      product: {
+        isActive: true,
+      },
+    },
+    include: {
+      product: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+    orderBy: {
+      stock: "asc",
+    },
+    take: 10,
+  }),
+]);
 
   return (
     <section className="mx-auto max-w-7xl px-6 py-16">
@@ -130,7 +162,7 @@ export default async function AdminDashboardPage() {
         </Link>
       </div>
 
-      <div className="mt-10 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-10 grid gap-6 sm:grid-cols-2 xl:grid-cols-5">
         {dashboardCards.map((card) => (
           <article
             key={card.label}
@@ -173,6 +205,87 @@ export default async function AdminDashboardPage() {
             View all
           </Link>
         </div>
+        
+        <section className="mt-10 rounded-2xl border border-gray-800 bg-gray-950 p-6">
+  <div className="flex items-center justify-between gap-4">
+    <div>
+      <h2 className="text-2xl font-semibold">Low-stock inventory</h2>
+
+      <p className="mt-2 text-gray-400">
+        Active product variants with five or fewer units remaining.
+      </p>
+    </div>
+
+    <Link
+      href="/admin/products"
+      className="text-sm font-semibold underline"
+    >
+      Manage products
+    </Link>
+  </div>
+
+  {lowStockVariants.length === 0 ? (
+    <p className="mt-8 text-gray-400">
+      All active products have healthy stock levels.
+    </p>
+  ) : (
+    <div className="mt-8 overflow-x-auto">
+      <table className="w-full min-w-[700px] text-left">
+        <thead>
+          <tr className="border-b border-gray-800 text-sm text-gray-500">
+            <th className="pb-4 pr-6 font-medium">Product</th>
+            <th className="pb-4 pr-6 font-medium">SKU</th>
+            <th className="pb-4 pr-6 font-medium">Variant</th>
+            <th className="pb-4 pr-6 font-medium">Stock</th>
+            <th className="pb-4 font-medium">Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {lowStockVariants.map((variant) => (
+            <tr
+              key={variant.id}
+              className="border-b border-gray-900 last:border-0"
+            >
+              <td className="py-5 pr-6 font-semibold">
+                {variant.product.name}
+              </td>
+
+              <td className="py-5 pr-6 text-gray-400">
+                {variant.sku}
+              </td>
+
+              <td className="py-5 pr-6 text-gray-300">
+                {variant.size} / {variant.color}
+              </td>
+
+              <td className="py-5 pr-6">
+                <span
+                  className={
+                    variant.stock === 0
+                      ? "font-semibold text-red-400"
+                      : "font-semibold text-yellow-300"
+                  }
+                >
+                  {variant.stock}
+                </span>
+              </td>
+
+              <td className="py-5">
+                <Link
+                  href={`/admin/products/${variant.product.id}/edit`}
+                  className="font-semibold underline"
+                >
+                  Update stock
+                </Link>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+</section>
 
         {recentOrders.length === 0 ? (
           <p className="mt-8 text-gray-400">No orders have been placed yet.</p>

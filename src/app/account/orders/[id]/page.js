@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-
+import OrderStatusBadge from "@/components/OrderStatusBadge";
 import { auth } from "@/auth/auth";
 import { prisma } from "@/lib/prisma";
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth/auth";
 import { prisma } from "@/lib/prisma";
+import OrderStatusBadge from "@/components/OrderStatusBadge";
 
 function formatOrderDate(date) {
   return new Intl.DateTimeFormat("en-US", {
