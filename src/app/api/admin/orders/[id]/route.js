@@ -1,5 +1,6 @@
 import { auth } from "@/auth/auth";
 import { prisma } from "@/lib/prisma";
+import { sendOrderStatusEmail } from "@/lib/order-status-email";
 
 const allowedStatuses = [
   "PENDING",
@@ -88,18 +89,49 @@ export async function PATCH(request, { params }) {
     }
 
     const order = await prisma.order.update({
-      where: {
-        id,
-      },
-      data: {
-        status,
-      },
-      select: {
-        id: true,
-        orderNumber: true,
-        status: true,
-      },
-    });
+  where: {
+    id,
+  },
+  data: {
+    status,
+  },
+  select: {
+    id: true,
+    orderNumber: true,
+    status: true,
+    userId: true,
+    email: true,
+    firstName: true,
+    totalInCents: true,
+  },
+});
+const emailStatuses = [
+  "PROCESSING",
+  "SHIPPED",
+  "DELIVERED",
+  "CANCELLED",
+];
+
+const statusActuallyChanged =
+  existingOrder.status !== order.status;
+
+if (
+  statusActuallyChanged &&
+  emailStatuses.includes(order.status)
+) {
+  try {
+    await sendOrderStatusEmail(order);
+
+    console.log(
+      `Order status email sent for ${order.orderNumber}: ${order.status}`,
+    );
+  } catch (emailError) {
+    console.error(
+      "Order status email failed:",
+      emailError,
+    );
+  }
+}
 
     return Response.json({
       message: "Order status updated successfully.",
