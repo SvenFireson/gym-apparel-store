@@ -56,8 +56,17 @@ export default async function ProductsPage() {
                     href={`/products/${product.slug}`}
                     className="group overflow-hidden rounded-lg border border-gray-800 bg-gray-950 transition hover:-translate-y-1 hover:border-gray-600"
               >
-                <div className="relative aspect-[16/9] overflow-hidden bg-black">
-  {product.images[0] ? (
+            <div className="relative aspect-[16/9] overflow-hidden bg-black">
+            {totalStock === 0 ? (
+              <span className="absolute left-3 top-3 z-10 rounded-full bg-red-600 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
+              Sold out
+              </span>
+                ) : totalStock <= 5 ? (
+              <span className="absolute left-3 top-3 z-10 rounded-full bg-amber-500 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-black">
+               Low stock
+               </span>
+              ) : null}
+     {product.images[0] ? (
     <Image
       src={product.images[0].url}
       alt={product.images[0].altText}

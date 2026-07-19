@@ -64,6 +64,8 @@ export default function AddToCartForm({ product }) {
               <span className="mt-1 block text-sm opacity-70">
                 {isOutOfStock
                   ? "Out of stock"
+                  : variant.stock <= 5
+                  ? `Only ${variant.stock} left`
                   : `${variant.stock} available`}
               </span>
             </button>
@@ -71,14 +73,16 @@ export default function AddToCartForm({ product }) {
         })}
       </div>
 
-      <button
-        type="button"
-        onClick={handleAddToCart}
-        disabled={!selectedVariant || selectedVariant.stock < 1}
-        className="mt-6 w-full rounded-md bg-white px-6 py-3 font-semibold text-black transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        Add to cart
-      </button>
+        <button
+            type="button"
+            onClick={handleAddToCart}
+            disabled={!selectedVariant || selectedVariant.stock < 1}
+            className="mt-6 w-full rounded-md bg-white px-6 py-3 font-semibold text-black transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+            {!selectedVariant || selectedVariant.stock < 1
+            ? "Out of stock"
+            : "Add to cart"}
+        </button>
 
       {message ? (
         <p className="mt-3 text-sm text-gray-400">{message}</p>
