@@ -37,7 +37,10 @@ function parseMoneyToCents(value) {
 }
 
 function parseOptionalMoneyToCents(value) {
-  if (!value || value.trim() === "") {
+  if (
+    typeof value !== "string" ||
+    value.trim() === ""
+  ) {
     return null;
   }
 
@@ -54,11 +57,21 @@ function parsePositiveInteger(value) {
   return number;
 }
 
+function refreshShippingPages() {
+  revalidatePath("/admin/shipping");
+  revalidatePath("/checkout");
+  revalidatePath("/api/shipping-methods");
+}
+
 export async function createShippingMethod(formData) {
   await requireAdmin();
 
   const name = formData.get("name")?.trim();
-  const code = formData.get("code")?.trim().toUpperCase();
+  const code = formData
+    .get("code")
+    ?.trim()
+    .toUpperCase();
+
   const description =
     formData.get("description")?.trim() || null;
 
@@ -140,8 +153,7 @@ export async function createShippingMethod(formData) {
     },
   });
 
-  revalidatePath("/admin/shipping");
-  revalidatePath("/api/shipping-methods");
+  refreshShippingPages();
 
   redirect(
     "/admin/shipping?success=Shipping method created.",
@@ -159,14 +171,15 @@ export async function toggleShippingMethod(formData) {
     );
   }
 
-  const method = await prisma.shippingMethod.findUnique({
-    where: {
-      id,
-    },
-    select: {
-      isActive: true,
-    },
-  });
+  const method =
+    await prisma.shippingMethod.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        isActive: true,
+      },
+    });
 
   if (!method) {
     redirect(
@@ -183,8 +196,133 @@ export async function toggleShippingMethod(formData) {
     },
   });
 
-  revalidatePath("/admin/shipping");
-  revalidatePath("/api/shipping-methods");
+  refreshShippingPages();
+
+  redirect(
+    "/admin/shipping?success=Shipping method updated.",
+  );
+}
+
+export async function updateShippingMethod(formData) {
+  await requireAdmin();
+
+  const id = formData.get("id");
+
+  const name = formData.get("name")?.trim();
+  const code = formData
+    .get("code")
+    ?.trim()
+    .toUpperCase();
+
+  const description =
+    formData.get("description")?.trim() || null;
+
+  const priceInCents = parseMoneyToCents(
+    formData.get("price"),
+  );
+
+  const freeAboveCents = parseOptionalMoneyToCents(
+    formData.get("freeAbove"),
+  );
+
+  const estimatedMinDays = parsePositiveInteger(
+    formData.get("estimatedMinDays"),
+  );
+
+  const estimatedMaxDays = parsePositiveInteger(
+    formData.get("estimatedMaxDays"),
+  );
+
+  const position = parsePositiveInteger(
+    formData.get("position"),
+  );
+
+  if (typeof id !== "string" || !id) {
+    redirect(
+      "/admin/shipping?error=Shipping method was not found.",
+    );
+  }
+
+  if (!name || !code) {
+    redirect(
+      "/admin/shipping?error=Name and code are required.",
+    );
+  }
+
+  if (priceInCents === null) {
+    redirect(
+      "/admin/shipping?error=Enter a valid shipping price.",
+    );
+  }
+
+  if (
+    estimatedMinDays === null ||
+    estimatedMaxDays === null ||
+    estimatedMaxDays < estimatedMinDays
+  ) {
+    redirect(
+      "/admin/shipping?error=Enter a valid delivery range.",
+    );
+  }
+
+  if (position === null) {
+    redirect(
+      "/admin/shipping?error=Enter a valid position.",
+    );
+  }
+
+  const method =
+    await prisma.shippingMethod.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  if (!method) {
+    redirect(
+      "/admin/shipping?error=Shipping method was not found.",
+    );
+  }
+
+  const duplicateCode =
+    await prisma.shippingMethod.findFirst({
+      where: {
+        code,
+        NOT: {
+          id,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  if (duplicateCode) {
+    redirect(
+      "/admin/shipping?error=Another shipping method already uses that code.",
+    );
+  }
+
+  await prisma.shippingMethod.update({
+    where: {
+      id,
+    },
+    data: {
+      name,
+      code,
+      description,
+      priceInCents,
+      freeAboveCents,
+      estimatedMinDays,
+      estimatedMaxDays,
+      position,
+    },
+  });
+
+  refreshShippingPages();
 
   redirect(
     "/admin/shipping?success=Shipping method updated.",

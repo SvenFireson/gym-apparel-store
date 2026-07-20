@@ -4,8 +4,8 @@ import { prisma } from "@/lib/prisma";
 import {
   createShippingMethod,
   toggleShippingMethod,
+  updateShippingMethod,
 } from "./actions";
-
 function formatMoney(cents) {
   return `$${(cents / 100).toFixed(2)}`;
 }
@@ -250,104 +250,247 @@ export default async function AdminShippingPage({
           <div className="divide-y divide-gray-800">
             {methods.map((method) => (
               <div
-                key={method.id}
-                className="grid gap-5 px-6 py-5 md:grid-cols-[1fr_auto]"
-              >
-                <div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <h3 className="text-lg font-semibold">
-                      {method.name}
-                    </h3>
+  key={method.id}
+  className="px-6 py-5"
+>
+  <div className="grid gap-5 md:grid-cols-[1fr_auto]">
+    <div>
+      <div className="flex flex-wrap items-center gap-3">
+        <h3 className="text-lg font-semibold">
+          {method.name}
+        </h3>
 
-                    <span className="rounded-full border border-gray-700 px-3 py-1 text-xs text-gray-400">
-                      {method.code}
-                    </span>
+        <span className="rounded-full border border-gray-700 px-3 py-1 text-xs text-gray-400">
+          {method.code}
+        </span>
 
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                        method.isActive
-                          ? "bg-green-950 text-green-300"
-                          : "bg-gray-800 text-gray-400"
-                      }`}
-                    >
-                      {method.isActive
-                        ? "Active"
-                        : "Inactive"}
-                    </span>
-                  </div>
-
-                  {method.description ? (
-                    <p className="mt-3 text-sm text-gray-400">
-                      {method.description}
-                    </p>
-                  ) : null}
-
-                  <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-400">
-                    <span>
-                      Price:{" "}
-                      <strong className="text-white">
-                        {formatMoney(method.priceInCents)}
-                      </strong>
-                    </span>
-
-                    <span>
-                      Free above:{" "}
-                      <strong className="text-white">
-                        {method.freeAboveCents === null
-                          ? "Never"
-                          : formatMoney(
-                              method.freeAboveCents,
-                            )}
-                      </strong>
-                    </span>
-
-                    <span>
-                      Delivery:{" "}
-                      <strong className="text-white">
-                        {method.estimatedMinDays}–
-                        {method.estimatedMaxDays} days
-                      </strong>
-                    </span>
-
-                    <span>
-                      Position:{" "}
-                      <strong className="text-white">
-                        {method.position}
-                      </strong>
-                    </span>
-                  </div>
-                </div>
-
-                <form
-                  action={toggleShippingMethod}
-                  className="self-start"
-                >
-                  <input
-                    type="hidden"
-                    name="id"
-                    value={method.id}
-                  />
-
-                  <button
-                    type="submit"
-                    className="rounded-md border border-gray-700 px-4 py-2 text-sm font-semibold transition hover:border-white"
-                  >
-                    {method.isActive
-                      ? "Disable"
-                      : "Enable"}
-                  </button>
-                </form>
-              </div>
-            ))}
-
-            {methods.length === 0 ? (
-              <p className="px-6 py-10 text-center text-gray-500">
-                No shipping methods have been created yet.
-              </p>
-            ) : null}
-          </div>
-        </div>
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            method.isActive
+              ? "bg-green-950 text-green-300"
+              : "bg-gray-800 text-gray-400"
+          }`}
+        >
+          {method.isActive
+            ? "Active"
+            : "Inactive"}
+        </span>
       </div>
-    </section>
+
+      {method.description ? (
+        <p className="mt-3 text-sm text-gray-400">
+          {method.description}
+        </p>
+      ) : null}
+
+      <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-400">
+        <span>
+          Price:{" "}
+          <strong className="text-white">
+            {formatMoney(method.priceInCents)}
+          </strong>
+        </span>
+
+        <span>
+          Free above:{" "}
+          <strong className="text-white">
+            {method.freeAboveCents === null
+              ? "Never"
+              : formatMoney(method.freeAboveCents)}
+          </strong>
+        </span>
+
+        <span>
+          Delivery:{" "}
+          <strong className="text-white">
+            {method.estimatedMinDays}–
+            {method.estimatedMaxDays} days
+          </strong>
+        </span>
+
+        <span>
+          Position:{" "}
+          <strong className="text-white">
+            {method.position}
+          </strong>
+        </span>
+      </div>
+    </div>
+
+    <form
+      action={toggleShippingMethod}
+      className="self-start"
+    >
+      <input
+        type="hidden"
+        name="id"
+        value={method.id}
+      />
+
+      <button
+        type="submit"
+        className="rounded-md border border-gray-700 px-4 py-2 text-sm font-semibold transition hover:border-white"
+      >
+        {method.isActive
+          ? "Disable"
+          : "Enable"}
+      </button>
+    </form>
+  </div>
+
+  <details className="mt-5 rounded-xl border border-gray-800 bg-black/40">
+    <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-gray-300 hover:text-white">
+      Edit shipping method
+    </summary>
+
+    <form
+      action={updateShippingMethod}
+      className="grid gap-5 border-t border-gray-800 p-5 md:grid-cols-2"
+    >
+      <input
+        type="hidden"
+        name="id"
+        value={method.id}
+      />
+
+      <div>
+        <label className="block text-sm font-medium text-gray-300">
+          Name
+        </label>
+
+        <input
+          name="name"
+          required
+          defaultValue={method.name}
+          className="mt-2 w-full rounded-md border border-gray-700 bg-black px-4 py-3 text-white outline-none focus:border-white"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-300">
+          Code
+        </label>
+
+        <input
+          name="code"
+          required
+          defaultValue={method.code}
+          className="mt-2 w-full rounded-md border border-gray-700 bg-black px-4 py-3 uppercase text-white outline-none focus:border-white"
+        />
+      </div>
+
+      <div className="md:col-span-2">
+        <label className="block text-sm font-medium text-gray-300">
+          Description
+        </label>
+
+        <textarea
+          name="description"
+          rows={3}
+          defaultValue={method.description || ""}
+          className="mt-2 w-full rounded-md border border-gray-700 bg-black px-4 py-3 text-white outline-none focus:border-white"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-300">
+          Price
+        </label>
+
+        <input
+          name="price"
+          type="number"
+          min="0"
+          step="0.01"
+          required
+          defaultValue={(
+            method.priceInCents / 100
+          ).toFixed(2)}
+          className="mt-2 w-full rounded-md border border-gray-700 bg-black px-4 py-3 text-white outline-none focus:border-white"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-300">
+          Free above
+        </label>
+
+        <input
+          name="freeAbove"
+          type="number"
+          min="0"
+          step="0.01"
+          defaultValue={
+            method.freeAboveCents === null
+              ? ""
+              : (
+                  method.freeAboveCents / 100
+                ).toFixed(2)
+          }
+          className="mt-2 w-full rounded-md border border-gray-700 bg-black px-4 py-3 text-white outline-none focus:border-white"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-300">
+          Minimum days
+        </label>
+
+        <input
+          name="estimatedMinDays"
+          type="number"
+          min="0"
+          required
+          defaultValue={method.estimatedMinDays}
+          className="mt-2 w-full rounded-md border border-gray-700 bg-black px-4 py-3 text-white outline-none focus:border-white"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-300">
+          Maximum days
+        </label>
+
+        <input
+          name="estimatedMaxDays"
+          type="number"
+          min="0"
+          required
+          defaultValue={method.estimatedMaxDays}
+          className="mt-2 w-full rounded-md border border-gray-700 bg-black px-4 py-3 text-white outline-none focus:border-white"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-300">
+          Display position
+        </label>
+
+        <input
+          name="position"
+          type="number"
+          min="0"
+          required
+          defaultValue={method.position}
+          className="mt-2 w-full rounded-md border border-gray-700 bg-black px-4 py-3 text-white outline-none focus:border-white"
+        />
+      </div>
+
+      <div className="flex items-end">
+        <button
+          type="submit"
+          className="w-full rounded-md bg-white px-5 py-3 font-semibold text-black transition hover:bg-gray-200"
+        >
+          Save changes
+        </button>
+      </div>
+    </form>
+  </details>
+</div>
+    ))}
+  </div>
+</div>
+</div>
+</section>
   );
 }
