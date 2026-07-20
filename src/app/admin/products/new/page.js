@@ -98,6 +98,15 @@ console.log({
       const formData = new FormData(event.currentTarget);
 
       const price = Number(formData.get("price"));
+      const selectedCategory = formData.get("category");
+
+      const submittedVariants = variants.map((variant) => ({
+        ...variant,
+        size:
+          selectedCategory === "ACCESSORIES"
+            ? "ONE SIZE"
+            : variant.size,
+      }));
 
       const response = await fetch("/api/admin/products", {
         method: "POST",
@@ -108,12 +117,12 @@ console.log({
           name: formData.get("name"),
           slug: formData.get("slug"),
           description: formData.get("description"),
-          category: formData.get("category"),
+          category: selectedCategory,
           imageUrl,
           imageAlt: formData.get("imageAlt"),
           priceInCents: Math.round(price * 100),
           isActive: formData.get("isActive") === "on",
-          variants,
+          variants: submittedVariants,
         }),
       });
 

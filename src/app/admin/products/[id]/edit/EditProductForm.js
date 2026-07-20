@@ -1,5 +1,5 @@
 "use client";
-
+import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -23,6 +23,8 @@ export default function EditProductForm({ initialProduct }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [imageUrl, setImageUrl] = useState(initialProduct.imageUrl);
+  const [isUploading, setIsUploading] = useState(false);
 
   function updateVariant(index, field, value) {
     setVariants((currentVariants) =>
@@ -61,6 +63,46 @@ export default function EditProductForm({ initialProduct }) {
     );
   }
 
+  async function handleImageUpload(event) {
+  const file = event.target.files?.[0];
+
+  if (!file) {
+    return;
+  }
+
+  setIsUploading(true);
+  setErrorMessage("");
+  setSuccessMessage("");
+
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch("/api/admin/uploads", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Unable to upload image.");
+    }
+
+    setImageUrl(data.image.url);
+    setSuccessMessage("New image uploaded. Save changes to apply it.");
+  } catch (error) {
+    console.error("Failed to upload image:", error);
+
+    setErrorMessage(
+      error instanceof Error
+        ? error.message
+        : "Unable to upload image.",
+    );
+  } finally {
+    setIsUploading(false);
+  }
+}
   async function handleSubmit(event) {
     event.preventDefault();
 
@@ -84,7 +126,7 @@ export default function EditProductForm({ initialProduct }) {
             slug: formData.get("slug"),
             description: formData.get("description"),
             category: formData.get("category"),
-            imageUrl: formData.get("imageUrl"),
+            imageUrl,
             imageAlt: formData.get("imageAlt"),
             priceInCents: Math.round(price * 100),
             isActive: formData.get("isActive") === "on",
@@ -244,40 +286,45 @@ export default function EditProductForm({ initialProduct }) {
 
         <div className="mt-6 grid gap-6 sm:grid-cols-2">
           <div>
-            <label
-              htmlFor="imageUrl"
-              className="block text-sm font-medium text-gray-300"
-            >
-              Image URL
-            </label>
+  <label
+    htmlFor="imageFile"
+    className="block text-sm font-medium text-gray-300"
+  >
+    Replace product image
+  </label>
 
-            <input
-            id="imageUrl"
-            name="imageUrl"
-            type="text"
-              defaultValue={initialProduct.imageUrl}
-              required
-              className="mt-2 w-full rounded-md border border-gray-700 bg-black px-4 py-3 text-white outline-none focus:border-white"
-            />
-          </div>
+  <input
+    id="imageFile"
+    type="file"
+    accept="image/jpeg,image/png,image/webp"
+    onChange={handleImageUpload}
+    className="mt-2 block w-full text-sm text-gray-300"
+  />
 
-          <div>
-            <label
-              htmlFor="imageAlt"
-              className="block text-sm font-medium text-gray-300"
-            >
-              Image alt text
-            </label>
+  {isUploading ? (
+    <p className="mt-2 text-sm text-gray-400">
+      Uploading image...
+    </p>
+  ) : null}
 
-            <input
-              id="imageAlt"
-              name="imageAlt"
-              type="text"
-              defaultValue={initialProduct.imageAlt}
-              className="mt-2 w-full rounded-md border border-gray-700 bg-black px-4 py-3 text-white outline-none focus:border-white"
-            />
-          </div>
-        </div>
+  {imageUrl ? (
+    <div className="mt-4">
+      <div className="relative h-64 w-full overflow-hidden rounded-xl">
+        <Image
+          src={imageUrl}
+          alt="Product preview"
+          fill
+          className="object-cover"
+        />
+      </div>
+
+      <p className="mt-2 break-all text-xs text-gray-500">
+        {imageUrl}
+      </p>
+    </div>
+  ) : null}
+</div>
+</div>
       </section>
 
       <section className="rounded-2xl border border-gray-800 bg-gray-950 p-6">
@@ -384,10 +431,14 @@ export default function EditProductForm({ initialProduct }) {
 
       <button
         type="submit"
-        disabled={isSubmitting}
+        disabled={isSubmitting || isUploading || !imageUrl}
         className="w-full rounded-md bg-white px-6 py-4 font-semibold text-black transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {isSubmitting ? "Saving changes..." : "Save changes"}
+        {isUploading
+          ? "Uploading image..."
+          : isSubmitting
+          ? "Saving changes..."
+          : "Save changes"}
       </button>
     </form>
   );
