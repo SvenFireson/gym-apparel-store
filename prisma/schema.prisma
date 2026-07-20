@@ -108,6 +108,7 @@ model VerificationToken {
 model ProductImage {
   id        String @id @default(cuid())
   url       String
+  publicId String?
   altText   String
   position  Int    @default(0)
   productId String

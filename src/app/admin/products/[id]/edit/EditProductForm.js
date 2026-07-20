@@ -24,6 +24,7 @@ export default function EditProductForm({ initialProduct }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [imageUrl, setImageUrl] = useState(initialProduct.imageUrl);
+  const [imagePublicId, setImagePublicId] = useState(initialProduct.imagePublicId);
   const [isUploading, setIsUploading] = useState(false);
 
   function updateVariant(index, field, value) {

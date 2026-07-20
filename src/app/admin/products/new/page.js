@@ -19,6 +19,7 @@ export default function NewProductPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
+  const [imagePublicId, setImagePublicId] = useState("");
   const [category, setCategory] = useState(""); 
 
   function updateVariant(index, field, value) {
@@ -69,12 +70,14 @@ console.log({
     });
 
     const data = await response.json();
+   
 
     if (!response.ok) {
       throw new Error(data.error || "Unable to upload image.");
     }
 
     setImageUrl(data.image.url);
+    setImagePublicId(data.image.publicId);
   } catch (error) {
     console.error("Failed to upload image:", error);
 
@@ -114,16 +117,17 @@ console.log({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: formData.get("name"),
-          slug: formData.get("slug"),
-          description: formData.get("description"),
-          category: selectedCategory,
-          imageUrl,
-          imageAlt: formData.get("imageAlt"),
-          priceInCents: Math.round(price * 100),
-          isActive: formData.get("isActive") === "on",
-          variants: submittedVariants,
-        }),
+        name: formData.get("name"),
+        slug: formData.get("slug"),
+        description: formData.get("description"),
+        category: selectedCategory,
+        imageUrl,
+        imagePublicId,
+        imageAlt: formData.get("imageAlt"),
+        priceInCents: Math.round(price * 100),
+        isActive: formData.get("isActive") === "on",
+        variants: submittedVariants,
+      }),
       });
 
       const data = await response.json();

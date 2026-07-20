@@ -49,6 +49,7 @@ export async function POST(request) {
     const description = body.description?.trim();
     const category = body.category;
     const imageUrl = body.imageUrl?.trim();
+    const imagePublicId = body.imagePublicId?.trim() || null;
     const imageAlt = body.imageAlt?.trim() || name;
     const priceInCents = Number(body.priceInCents);
     const variants = body.variants;
@@ -196,13 +197,14 @@ export async function POST(request) {
         priceInCents,
         isActive: body.isActive !== false,
 
-        images: {
-          create: {
-            url: imageUrl,
-            altText: imageAlt,
-            position: 0,
-          },
-        },
+            images: {
+      create: {
+        url: imageUrl,
+        publicId: imagePublicId,
+        altText: imageAlt,
+        position: 0,
+      },
+    },
 
         variants: {
           create: cleanedVariants,
