@@ -1,5 +1,5 @@
 "use client";
-
+import Image from "next/image";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -17,6 +17,9 @@ export default function NewProductPage() {
   const [variants, setVariants] = useState([{ ...emptyVariant }]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
+  const [category, setCategory] = useState(""); 
 
   function updateVariant(index, field, value) {
     setVariants((currentVariants) =>
@@ -43,6 +46,47 @@ export default function NewProductPage() {
       currentVariants.filter((_, variantIndex) => variantIndex !== index),
     );
   }
+  async function handleImageUpload(event) {
+  const file = event.target.files?.[0];
+
+  if (!file) {
+    return;
+  }
+
+  setIsUploading(true);
+  setErrorMessage("");
+
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+console.log({
+  category: formData.get("category"),
+  variants,
+});
+    const response = await fetch("/api/admin/uploads", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Unable to upload image.");
+    }
+
+    setImageUrl(data.image.url);
+  } catch (error) {
+    console.error("Failed to upload image:", error);
+
+    setErrorMessage(
+      error instanceof Error
+        ? error.message
+        : "Unable to upload image.",
+    );
+  } finally {
+    setIsUploading(false);
+  }
+}
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -65,7 +109,7 @@ export default function NewProductPage() {
           slug: formData.get("slug"),
           description: formData.get("description"),
           category: formData.get("category"),
-          imageUrl: formData.get("imageUrl"),
+          imageUrl,
           imageAlt: formData.get("imageAlt"),
           priceInCents: Math.round(price * 100),
           isActive: formData.get("isActive") === "on",
@@ -168,20 +212,34 @@ export default function NewProductPage() {
               </label>
 
               <select
-                id="category"
-                name="category"
-                required
-                defaultValue=""
-                className="mt-2 w-full rounded-md border border-gray-700 bg-black px-4 py-3 text-white outline-none focus:border-white"
-              >
-                <option value="" disabled>
-                  Select category
-                </option>
-                <option value="TOPS">Tops</option>
-                <option value="BOTTOMS">Bottoms</option>
-                <option value="OUTERWEAR">Outerwear</option>
-                <option value="ACCESSORIES">Accessories</option>
-              </select>
+             id="category"
+              name="category"
+              required
+              value={category}
+              onChange={(event) => {
+              const nextCategory = event.target.value;
+
+              setCategory(nextCategory);
+
+                if (nextCategory === "ACCESSORIES") {
+                  setVariants((currentVariants) =>
+                currentVariants.map((variant) => ({
+                ...variant,
+                size: "ONE SIZE",
+                })),
+                );
+            }
+  }       }
+  className="mt-2 w-full rounded-md border border-gray-700 bg-black px-4 py-3 text-white outline-none focus:border-white"
+>
+  <option value="" disabled>
+    Select category
+  </option>
+  <option value="TOPS">Tops</option>
+  <option value="BOTTOMS">Bottoms</option>
+  <option value="OUTERWEAR">Outerwear</option>
+  <option value="ACCESSORIES">Accessories</option>
+</select>
             </div>
 
             <div>
@@ -237,21 +295,45 @@ export default function NewProductPage() {
 
           <div className="mt-6 grid gap-6 sm:grid-cols-2">
             <div>
-              <label
-                htmlFor="imageUrl"
-                className="block text-sm font-medium text-gray-300"
-              >
-                Image URL
-              </label>
+  <label
+    htmlFor="imageFile"
+    className="block text-sm font-medium text-gray-300"
+  >
+    Product image
+  </label>
 
-              <input
-                id="imageUrl"
-                name="imageUrl"
-                type="text"
-                required
-                className="mt-2 w-full rounded-md border border-gray-700 bg-black px-4 py-3 text-white outline-none focus:border-white"
-              />
-            </div>
+  <input
+    id="imageFile"
+    type="file"
+    accept="image/jpeg,image/png,image/webp"
+    onChange={handleImageUpload}
+    required={!imageUrl}
+    className="mt-2 block w-full text-sm text-gray-300"
+  />
+
+  {isUploading ? (
+    <p className="mt-2 text-sm text-gray-400">
+      Uploading image...
+    </p>
+  ) : null}
+
+  {imageUrl ? (
+    <div className="mt-4">
+     <div className="relative h-64 w-full overflow-hidden rounded-xl">
+      <Image
+        src={imageUrl}
+        alt="Product preview"
+        fill
+        className="object-cover"
+      />
+</div>
+
+      <p className="mt-2 break-all text-xs text-gray-500">
+        {imageUrl}
+      </p>
+    </div>
+  ) : null}
+</div>
 
             <div>
               <label
@@ -309,13 +391,22 @@ export default function NewProductPage() {
 
                 <input
                   type="text"
-                  value={variant.size}
+                  value={
+                  category === "ACCESSORIES"
+                  ? "ONE SIZE"
+                  : variant.size
+                }
                   onChange={(event) =>
-                    updateVariant(index, "size", event.target.value)
-                  }
-                  placeholder="Size"
+                  updateVariant(index, "size", event.target.value)
+                }
+                placeholder={
+                  category === "ACCESSORIES"
+                  ? "One size"
+                  : "Size"
+                }
                   required
-                  className="rounded-md border border-gray-700 bg-black px-4 py-3 text-white"
+                  readOnly={category === "ACCESSORIES"}
+                  className="rounded-md border border-gray-700 bg-black px-4 py-3 text-white read-only:text-gray-400"
                 />
 
                 <input
@@ -366,10 +457,14 @@ export default function NewProductPage() {
 
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || isUploading || !imageUrl}
           className="w-full rounded-md bg-white px-6 py-4 font-semibold text-black transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isSubmitting ? "Creating product..." : "Create product"}
+          {isUploading
+            ? "Uploading image..."
+            : isSubmitting
+            ? "Creating product..."
+            : "Create product"}
         </button>
       </form>
     </section>

@@ -96,7 +96,10 @@ export async function POST(request) {
 
     const cleanedVariants = variants.map((variant) => ({
       sku: variant.sku?.trim().toUpperCase(),
-      size: variant.size?.trim().toUpperCase(),
+      size:
+  category === "ACCESSORIES"
+    ? "ONE SIZE"
+    : variant.size?.trim().toUpperCase(),
       color: variant.color?.trim(),
       stock: Number(variant.stock),
     }));
